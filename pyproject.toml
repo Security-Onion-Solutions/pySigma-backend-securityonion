@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "pysigma-backend-securityonion"
+version = "0.1.0"
+description = "pySigma OQL backend"
+authors = ["Security Onion Solutions <contact@securityonionsolutions.com>"]
+license = "MIT"
+repository = "https://github.com/Security-Onion-Solutions/pySigma-backend-SecurityOnion"
+packages = [
+    { include = "sigma" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pysigma = "^0.11.19"
+
+[tool.poetry.group.dev.dependencies]
+defusedxml = "^0.7"
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+coverage = "^7.6.12"
+
+[build-system]
+requires = ["poetry-core>=1.8.1"]
+build-backend = "poetry.core.masonry.api"
