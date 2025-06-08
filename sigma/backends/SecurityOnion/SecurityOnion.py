@@ -124,8 +124,47 @@ class SecurityOnionBackend(TextQueryBackend):
     deferred_only_query : ClassVar[str] = "*"            # String used as query if final query only contains deferred expression
     
 
+    def clean_unnecessary_parentheses(self, query: str) -> str:
+        """Remove unnecessary parentheses only around in-expressions in pure AND chains"""
+        import re
+        
+        # Pattern: (field:(val1 OR val2)) in AND-only contexts
+        
+        main_query = query.split('|')[0].strip()  # Main query before any |
+        
+        # Quick safety check: if query contains any OR outside parentheses, skip
+        # This catches cases like "A OR B" but allows "A AND (field:(val1 OR val2))"
+        
+        # Remove all content inside parentheses to see top-level structure  
+        temp_query = main_query
+        while '(' in temp_query:
+            # Remove innermost parentheses
+            start = temp_query.rfind('(')
+            if start == -1:
+                break
+            end = temp_query.find(')', start)
+            if end == -1:
+                break
+            temp_query = temp_query[:start] + temp_query[end+1:]
+        
+        # If there's OR in the cleaned structure, don't clean anything
+        if ' OR ' in temp_query:
+            return query
+            
+        # If we get here, the query is only connected by AND/NOT at top level
+        # Safe to clean wrapped in-expressions
+        pattern = r'\(([a-zA-Z0-9_.-]+(?:\|[a-zA-Z0-9_.-]+)*:\([^)]+\))\)'
+        query = re.sub(pattern, r'\1', query)
+        
+        return query
+    
+
     def finalize_query(self, rule: SigmaRule, query: str, index: int, state: ConversionState, output_format: str) -> str:
         """Finalize query by adding field grouping if specified in the rule and aggregation is not disabled"""
+        
+        # Clean unnecessary parentheses first
+        query = self.clean_unnecessary_parentheses(query)
+        
         fields = rule.fields if hasattr(rule, "fields") else []
         
         if fields:
